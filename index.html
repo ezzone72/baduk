@@ -95,7 +95,7 @@
   let isOmokMode = false;
 
   function init() {
-    const saved = localStorage.getItem("go19_v3_final");
+    const saved = localStorage.getItem("go19_final_service");
     if(saved) {
       const data = JSON.parse(saved);
       board = data.board;
@@ -174,31 +174,58 @@
     const y = Math.round((e.clientY - rect.top - padding) / spacing);
 
     if(x >= 0 && x < SIZE && y >= 0 && y < SIZE && board[y][x] === EMPTY) {
-      board[y][x] = turn;
+      const currentTurn = turn;
+      board[y][x] = currentTurn;
       let removed = [];
 
       if(!isOmokMode) {
-        removed = getCaptured(x, y, turn);
-        // 만약 잡은 돌이 없는데 자살수라면 무효화
-        if(removed.length === 0 && isSuicide(x, y, turn)) {
+        removed = getCaptured(x, y, currentTurn);
+        if(removed.length === 0 && isSuicide(x, y, currentTurn)) {
           board[y][x] = EMPTY;
           alert("자살수입니다!");
           return;
         }
-        // 잡힌 돌 제거 및 카운트
         removed.forEach(([rx, ry]) => {
           board[ry][rx] = EMPTY;
-          if(turn === BLACK) captures.black++; else captures.white++;
+          if(currentTurn === BLACK) captures.black++; else captures.white++;
         });
       }
 
-      history.push({x, y, turn, removed, isOmok: isOmokMode});
-      turn = (turn === BLACK) ? WHITE : BLACK;
+      history.push({x, y, turn: currentTurn, removed, isOmok: isOmokMode});
+      draw();
+
+      if(isOmokMode && checkOmokWin(x, y, currentTurn)) {
+        setTimeout(() => {
+          alert(`${currentTurn === BLACK ? '흑' : '백'} 승리! 축하합니다!`);
+          if(confirm("판을 비우고 새로 시작할까요?")) resetBoard();
+        }, 100);
+      }
+
+      turn = (currentTurn === BLACK) ? WHITE : BLACK;
       updateUI();
       saveToLocal();
-      draw();
     }
   });
+
+  // 오목 승리 판별 로직 (서비스!)
+  function checkOmokWin(x, y, color) {
+    const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+    for(const [dx, dy] of dirs) {
+      let count = 1;
+      // 한쪽 방향
+      for(let i=1; i<5; i++) {
+        const nx = x + dx*i, ny = y + dy*i;
+        if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) count++; else break;
+      }
+      // 반대쪽 방향
+      for(let i=1; i<5; i++) {
+        const nx = x - dx*i, ny = y - dy*i;
+        if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) count++; else break;
+      }
+      if(count >= 5) return true;
+    }
+    return false;
+  }
 
   function getCaptured(x, y, color) {
     const opp = (color === BLACK) ? WHITE : BLACK;
@@ -273,25 +300,25 @@
   }
 
   function saveToLocal() {
-    localStorage.setItem("go19_v3_final", JSON.stringify({board, turn, history, captures, isOmokMode}));
+    localStorage.setItem("go19_final_service", JSON.stringify({board, turn, history, captures, isOmokMode}));
   }
 
-// 버튼 이벤트 부분에서 이 내용으로 수정하세요
-document.getElementById("modeBtn").addEventListener("click", () => {
-  // 1. 판 위에 돌이 있는지 확인 (board 배열을 전부 검사)
-  const hasStones = board.some(row => row.some(cell => cell !== EMPTY));
-
-  if (hasStones) {
-    // 2. 돌이 있다면 알림을 띄우고 함수 종료 (전환 막기)
-    alert("판에 돌이 있을 때는 모드를 바꿀 수 없습니다.\n먼저 '판 비우기'를 눌러주세요.");
-    return;
+  function resetBoard() {
+    board = Array.from({length:SIZE}, () => Array(SIZE).fill(EMPTY));
+    history = []; captures = {black:0, white:0}; turn = BLACK;
+    saveToLocal(); updateUI(); draw();
   }
 
-  // 3. 돌이 없을 때만 모드 전환 실행
-  isOmokMode = !isOmokMode;
-  updateUI();
-  saveToLocal();
-});
+  document.getElementById("modeBtn").addEventListener("click", () => {
+    const hasStones = board.some(row => row.some(cell => cell !== EMPTY));
+    if (hasStones) {
+      alert("판에 돌이 있을 때는 모드를 바꿀 수 없습니다.\n먼저 '판 비우기'를 눌러주세요.");
+      return;
+    }
+    isOmokMode = !isOmokMode;
+    updateUI();
+    saveToLocal();
+  });
 
   document.getElementById("undoBtn").addEventListener("click", () => {
     if(history.length === 0) return;
@@ -319,11 +346,7 @@ document.getElementById("modeBtn").addEventListener("click", () => {
   });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
-    if(confirm("판을 비울까요?")) {
-      board = Array.from({length:SIZE}, () => Array(SIZE).fill(EMPTY));
-      history = []; captures = {black:0, white:0}; turn = BLACK;
-      saveToLocal(); updateUI(); draw();
-    }
+    if(confirm("판을 비울까요?")) resetBoard();
   });
 
   init();
