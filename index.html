@@ -276,11 +276,22 @@
     localStorage.setItem("go19_v3_final", JSON.stringify({board, turn, history, captures, isOmokMode}));
   }
 
-  document.getElementById("modeBtn").addEventListener("click", () => {
-    isOmokMode = !isOmokMode;
-    updateUI();
-    saveToLocal();
-  });
+// 버튼 이벤트 부분에서 이 내용으로 수정하세요
+document.getElementById("modeBtn").addEventListener("click", () => {
+  // 1. 판 위에 돌이 있는지 확인 (board 배열을 전부 검사)
+  const hasStones = board.some(row => row.some(cell => cell !== EMPTY));
+
+  if (hasStones) {
+    // 2. 돌이 있다면 알림을 띄우고 함수 종료 (전환 막기)
+    alert("판에 돌이 있을 때는 모드를 바꿀 수 없습니다.\n먼저 '판 비우기'를 눌러주세요.");
+    return;
+  }
+
+  // 3. 돌이 없을 때만 모드 전환 실행
+  isOmokMode = !isOmokMode;
+  updateUI();
+  saveToLocal();
+});
 
   document.getElementById("undoBtn").addEventListener("click", () => {
     if(history.length === 0) return;
