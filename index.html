@@ -6,25 +6,15 @@
   <title>소장님 전용 바둑/오목</title>
   <style>
     :root{
-      --bg:#0b0f14;
-      --panel:#111826;
-      --wood:#c49a6c;
-      --wood2:#b78957;
-      --text:#e7eefc;
-      --muted: rgba(231,238,252,.65);
-      --btn:#1a2436;
-      --btn2:#24314a;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius: 18px;
+      --bg:#0b0f14; --panel:#111826; --wood:#c49a6c; --wood2:#b78957;
+      --text:#e7eefc; --muted: rgba(231,238,252,.65); --btn:#1a2436;
+      --btn2:#24314a; --shadow: 0 10px 30px rgba(0,0,0,.35); --radius: 18px;
     }
     *{ box-sizing:border-box; }
     body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex; flex-direction: column; align-items: center;
-      min-height: 100vh; overflow-x: hidden;
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); display: flex; flex-direction: column; 
+      align-items: center; min-height: 100vh; overflow-x: hidden;
     }
     header{ width:100%; padding: 20px 20px 10px; max-width: 600px; display:flex; justify-content:space-between; align-items:center;}
     h1{ font-size:1.4rem; margin:0; font-weight:700; color:var(--text); letter-spacing:-0.02em;}
@@ -94,18 +84,31 @@
   let captures = { black: 0, white: 0 };
   let isOmokMode = false;
 
+  // ====== 효과음 (Web Audio API) ======
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function playStoneSound(isCapture = false) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = isCapture ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(isCapture ? 150 : 250, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+  }
+
   function init() {
-    const saved = localStorage.getItem("go19_final_service");
+    const saved = localStorage.getItem("go19_v_final_sfx");
     if(saved) {
       const data = JSON.parse(saved);
-      board = data.board;
-      turn = data.turn;
+      board = data.board; turn = data.turn;
       history = data.history || [];
       captures = data.captures || {black:0, white:0};
       isOmokMode = !!data.isOmokMode;
     }
-    updateUI();
-    resize();
+    updateUI(); resize();
     window.addEventListener('resize', resize);
   }
 
@@ -113,11 +116,9 @@
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.parentElement.getBoundingClientRect();
     const side = Math.min(rect.width, rect.height) - 20;
-    canvas.width = side * dpr;
-    canvas.height = side * dpr;
+    canvas.width = side * dpr; canvas.height = side * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    canvas.style.width = side + 'px';
-    canvas.style.height = side + 'px';
+    canvas.style.width = side + 'px'; canvas.style.height = side + 'px';
     draw();
   }
 
@@ -126,14 +127,12 @@
     const padding = s / (SIZE + 1);
     const spacing = (s - padding * 2) / (SIZE - 1);
     ctx.clearRect(0,0,s,s);
-    ctx.strokeStyle = "rgba(0,0,0,0.6)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.lineWidth = 1;
 
     for(let i=0; i<SIZE; i++) {
       ctx.beginPath(); ctx.moveTo(padding + i*spacing, padding); ctx.lineTo(padding + i*spacing, s - padding); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(padding, padding + i*spacing); ctx.lineTo(s - padding, padding + i*spacing); ctx.stroke();
     }
-
     const stars = [3, 9, 15];
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     stars.forEach(r => stars.forEach(c => {
@@ -143,24 +142,19 @@
     for(let y=0; y<SIZE; y++){
       for(let x=0; x<SIZE; x++){
         if(board[y][x] !== EMPTY){
-          const cx = padding + x*spacing;
-          const cy = padding + y*spacing;
-          ctx.beginPath();
-          ctx.arc(cx, cy, spacing*0.45, 0, Math.PI*2);
+          const cx = padding + x*spacing; const cy = padding + y*spacing;
+          ctx.beginPath(); ctx.arc(cx, cy, spacing*0.45, 0, Math.PI*2);
           ctx.fillStyle = board[y][x] === BLACK ? "#111" : "#fff";
-          ctx.shadowBlur = 4; ctx.shadowColor = "rgba(0,0,0,0.3)";
-          ctx.fill();
-          ctx.shadowBlur = 0;
+          ctx.shadowBlur = 4; ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.fill(); ctx.shadowBlur = 0;
           if(board[y][x] === WHITE) { ctx.strokeStyle="#ccc"; ctx.stroke(); }
         }
       }
     }
-
     if(history.length > 0) {
       const last = history[history.length-1];
       if(!last.pass && last.x !== -1) {
-        ctx.fillStyle = "#ff4444";
-        ctx.beginPath(); ctx.arc(padding + last.x*spacing, padding + last.y*spacing, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#ff4444"; ctx.beginPath();
+        ctx.arc(padding + last.x*spacing, padding + last.y*spacing, 4, 0, Math.PI*2); ctx.fill();
       }
     }
   }
@@ -174,50 +168,45 @@
     const y = Math.round((e.clientY - rect.top - padding) / spacing);
 
     if(x >= 0 && x < SIZE && y >= 0 && y < SIZE && board[y][x] === EMPTY) {
-      const currentTurn = turn;
-      board[y][x] = currentTurn;
+      const curColor = turn;
+      board[y][x] = curColor;
       let removed = [];
 
       if(!isOmokMode) {
-        removed = getCaptured(x, y, currentTurn);
-        if(removed.length === 0 && isSuicide(x, y, currentTurn)) {
-          board[y][x] = EMPTY;
-          alert("자살수입니다!");
-          return;
+        removed = getCaptured(x, y, curColor);
+        if(removed.length === 0 && isSuicide(x, y, curColor)) {
+          board[y][x] = EMPTY; alert("자살수입니다!"); return;
         }
         removed.forEach(([rx, ry]) => {
           board[ry][rx] = EMPTY;
-          if(currentTurn === BLACK) captures.black++; else captures.white++;
+          if(curColor === BLACK) captures.black++; else captures.white++;
         });
       }
 
-      history.push({x, y, turn: currentTurn, removed, isOmok: isOmokMode});
+      playStoneSound(removed.length > 0);
+      history.push({x, y, turn: curColor, removed, isOmok: isOmokMode});
       draw();
 
-      if(isOmokMode && checkOmokWin(x, y, currentTurn)) {
+      if(isOmokMode && checkOmokWin(x, y, curColor)) {
         setTimeout(() => {
-          alert(`${currentTurn === BLACK ? '흑' : '백'} 승리! 축하합니다!`);
-          if(confirm("판을 비우고 새로 시작할까요?")) resetBoard();
+          alert(`${curColor === BLACK ? '흑' : '백'} 오목 승리!`);
+          if(confirm("판을 비울까요?")) resetBoard();
         }, 100);
       }
 
-      turn = (currentTurn === BLACK) ? WHITE : BLACK;
-      updateUI();
-      saveToLocal();
+      turn = (curColor === BLACK) ? WHITE : BLACK;
+      updateUI(); saveToLocal();
     }
   });
 
-  // 오목 승리 판별 로직 (서비스!)
   function checkOmokWin(x, y, color) {
     const dirs = [[1,0], [0,1], [1,1], [1,-1]];
     for(const [dx, dy] of dirs) {
       let count = 1;
-      // 한쪽 방향
       for(let i=1; i<5; i++) {
         const nx = x + dx*i, ny = y + dy*i;
         if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) count++; else break;
       }
-      // 반대쪽 방향
       for(let i=1; i<5; i++) {
         const nx = x - dx*i, ny = y - dy*i;
         if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) count++; else break;
@@ -241,16 +230,12 @@
   }
 
   function getGroup(gx, gy) {
-    const color = board[gy][gx];
-    const group = [];
-    const visited = new Set();
+    const color = board[gy][gx]; const group = []; const visited = new Set();
     const stack = [[gx, gy]];
     while(stack.length) {
-      const [cx, cy] = stack.pop();
-      const key = `${cx},${cy}`;
+      const [cx, cy] = stack.pop(); const key = `${cx},${cy}`;
       if(!visited.has(key)) {
-        visited.add(key);
-        group.push([cx, cy]);
+        visited.add(key); group.push([cx, cy]);
         [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx, dy]) => {
           const nx = cx + dx, ny = cy + dy;
           if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) stack.push([nx, ny]);
@@ -272,8 +257,7 @@
   }
 
   function isSuicide(sx, sy, color) {
-    const group = getGroup(sx, sy);
-    return !hasLiberty(group);
+    const group = getGroup(sx, sy); return !hasLiberty(group);
   }
 
   function updateUI() {
@@ -287,20 +271,16 @@
     const capsArea = document.getElementById("capsArea");
 
     if(isOmokMode) {
-      modeBtn.innerText = "🔁 모드 전환: 바둑";
-      appTitle.innerText = "주인님의 오목";
-      modeDisplay.innerText = "현재 모드: 오목 (돌 고정)";
-      capsArea.style.opacity = "0";
+      modeBtn.innerText = "🔁 모드 전환: 바둑"; appTitle.innerText = "주인님의 오목";
+      modeDisplay.innerText = "현재 모드: 오목 (돌 고정)"; capsArea.style.opacity = "0";
     } else {
-      modeBtn.innerText = "🔁 모드 전환: 오목";
-      appTitle.innerText = "주인님의 바둑";
-      modeDisplay.innerText = "현재 모드: 바둑";
-      capsArea.style.opacity = "1";
+      modeBtn.innerText = "🔁 모드 전환: 오목"; appTitle.innerText = "주인님의 바둑";
+      modeDisplay.innerText = "현재 모드: 바둑"; capsArea.style.opacity = "1";
     }
   }
 
   function saveToLocal() {
-    localStorage.setItem("go19_final_service", JSON.stringify({board, turn, history, captures, isOmokMode}));
+    localStorage.setItem("go19_v_final_sfx", JSON.stringify({board, turn, history, captures, isOmokMode}));
   }
 
   function resetBoard() {
@@ -310,14 +290,10 @@
   }
 
   document.getElementById("modeBtn").addEventListener("click", () => {
-    const hasStones = board.some(row => row.some(cell => cell !== EMPTY));
-    if (hasStones) {
-      alert("판에 돌이 있을 때는 모드를 바꿀 수 없습니다.\n먼저 '판 비우기'를 눌러주세요.");
-      return;
+    if (board.some(row => row.some(cell => cell !== EMPTY))) {
+      alert("판에 돌이 있을 때는 모드를 바꿀 수 없습니다.\n먼저 '판 비우기'를 눌러주세요."); return;
     }
-    isOmokMode = !isOmokMode;
-    updateUI();
-    saveToLocal();
+    isOmokMode = !isOmokMode; updateUI(); saveToLocal();
   });
 
   document.getElementById("undoBtn").addEventListener("click", () => {
@@ -331,18 +307,12 @@
         if(last.turn === BLACK) captures.black--; else captures.white--;
       });
     }
-    turn = last.turn;
-    updateUI();
-    saveToLocal();
-    draw();
+    turn = last.turn; updateUI(); saveToLocal(); draw();
   });
 
   document.getElementById("passBtn").addEventListener("click", () => {
     history.push({x: -1, y: -1, turn, pass: true});
-    turn = (turn === BLACK) ? WHITE : BLACK;
-    updateUI();
-    saveToLocal();
-    draw();
+    turn = (turn === BLACK) ? WHITE : BLACK; updateUI(); saveToLocal(); draw();
   });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
