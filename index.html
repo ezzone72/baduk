@@ -3,163 +3,108 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>소장님 전용 바둑/오목</title>
+  <title>내 손안의 바둑판</title>
   <style>
-    :root{
-      --bg:#0b0f14; --panel:#111826; --wood:#c49a6c; --wood2:#b78957;
-      --text:#e7eefc; --muted: rgba(231,238,252,.65); --btn:#1a2436;
-      --btn2:#24314a; --shadow: 0 10px 30px rgba(0,0,0,.35); --radius: 18px;
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-      background: var(--bg); color: var(--text); display: flex; flex-direction: column; 
-      align-items: center; min-height: 100vh; overflow-x: hidden;
-    }
-    header{ width:100%; padding: 20px 20px 10px; max-width: 600px; display:flex; justify-content:space-between; align-items:center;}
-    h1{ font-size:1.4rem; margin:0; font-weight:700; color:var(--text); letter-spacing:-0.02em;}
-    .status-bar{
-      width:90%; max-width:600px; background:var(--panel); border-radius:var(--radius);
-      padding:15px 20px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; box-shadow:var(--shadow);
-    }
-    .turn-info{ display:flex; align-items:center; gap:10px; font-weight:600;}
-    .dot{ width:12px; height:12px; border-radius:50%; }
-    .black-dot{ background:#000; border:1px solid rgba(255,255,255,0.2); }
-    .white-dot{ background:#fff; border:1px solid rgba(0,0,0,0.1); }
-    .board-container{
-      position:relative; width:95vw; height:95vw; max-width:600px; max-height:600px;
-      background: var(--wood); border-radius: 8px; box-shadow: var(--shadow);
-      display:flex; align-items:center; justify-content:center; padding:10px; border: 4px solid var(--wood2);
-    }
-    canvas{ width:100%; height:100%; touch-action:none; cursor:crosshair; }
-    .btn-group{ width:90%; max-width:600px; margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding-bottom:40px; }
-    .btn{
-      border:none; border-radius:12px; padding:14px; font-size:0.95rem; font-weight:600;
-      color:var(--text); background:var(--btn); cursor:pointer; transition:all 0.2s;
-      display:flex; align-items:center; justify-content:center; gap:8px;
-    }
-    .btn:active{ transform:scale(0.96); opacity:0.8; }
-    .btn.secondary{ background: var(--btn2); }
-    .btn.danger{ background: rgba(239, 68, 68, 0.2); color:#f87171; grid-column: span 2; }
-    .caps-info{ font-size:0.85rem; color:var(--muted); }
+    :root{ --bg:#0b0f14; --panel:#111826; --wood:#c49a6c; --wood2:#b78957; --text:#e7eefc; --accent:#facc15; --radius: 18px; }
+    body{ margin:0; font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; }
+    #introLayer { position: fixed; top:0; left:0; width:100%; height:100%; z-index: 100; background: #000 url('intro-gpt1.png') no-repeat center center / cover; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 100px; transition: 0.5s; }
+    .start-btn { padding: 18px 50px; font-size: 1.3rem; font-weight: 800; border-radius: 40px; background: #fff; color: #000; border: none; cursor: pointer; }
+    .game-section { width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    #status { margin-bottom:15px; font-weight: bold; color: var(--accent); }
+    .board-container{ position:relative; width:92vw; height:92vw; max-width:550px; max-height:550px; background: var(--wood); border-radius: 8px; border: 4px solid var(--wood2); display:flex; align-items:center; justify-content:center; }
+    canvas{ width:100%; height:100%; touch-action:none; cursor: pointer; }
+    .btn-group{ width:100%; display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px; }
+    .btn{ border:none; border-radius:12px; padding:15px; color:#fff; background:#1e293b; font-weight:600; cursor:pointer; }
+    .btn-reset { grid-column: span 2; background:#ef4444; }
   </style>
 </head>
 <body>
 
-<header>
-  <h1 id="appTitle">주인님의 바둑</h1>
-  <div class="caps-info" id="capsArea">
-    흑 잡음: <span id="capBlack">0</span> / 백 잡음: <span id="capWhite">0</span>
-  </div>
-</header>
-
-<div class="status-bar">
-  <div class="turn-info">
-    <div id="turnDot" class="dot black-dot"></div>
-    <span id="turnText">흑의 차례</span>
-  </div>
-  <div id="modeDisplay" style="font-size:0.8rem; opacity:0.7;">현재 모드: 바둑</div>
+<div id="introLayer">
+  <button class="start-btn" onclick="startGame()">수담(手談) 시작하기</button>
 </div>
 
-<div class="board-container">
-  <canvas id="goBoard"></canvas>
-</div>
-
-<div class="btn-group">
-  <button id="modeBtn" class="btn">🔁 모드 전환: 오목</button>
-  <button id="undoBtn" class="btn secondary">한 수 되돌리기</button>
-  <button id="passBtn" class="btn secondary">패스</button>
-  <button id="resetBtn" class="btn danger">판 비우기</button>
+<div class="game-section">
+  <h1>내 손안의 바둑판</h1>
+  <div id="status">흑의 차례 (바둑) | 잡은 돌 - 흑: 0 백: 0</div>
+  <div class="board-container">
+    <canvas id="goBoard"></canvas>
+  </div>
+  <div class="btn-group">
+    <button onclick="toggleMode()" class="btn" id="modeBtn">🔁 오목 모드로 전환</button>
+    <button onclick="undo()" class="btn">한 수 무르기</button>
+    <button onclick="resetBoard()" class="btn btn-reset">판 비우기 (새 게임)</button>
+  </div>
 </div>
 
 <script>
   const canvas = document.getElementById('goBoard');
   const ctx = canvas.getContext('2d');
   const SIZE = 19;
-  const EMPTY = 0, BLACK = 1, WHITE = 2;
-  
-  let board = Array.from({length:SIZE}, () => Array(SIZE).fill(EMPTY));
-  let turn = BLACK;
+
+  let board = Array.from({length:SIZE}, () => Array(SIZE).fill(0));
+  let turn = 1;
   let history = [];
-  let captures = { black: 0, white: 0 };
-  let isOmokMode = false;
+  let isOmok = false;
+  let captures = { 1: 0, 2: 0 }; // 1: 흑이 잡은 수, 2: 백이 잡은 수
 
-  // ====== 효과음 (Web Audio API) ======
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  function playStoneSound(isCapture = false) {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = isCapture ? 'sine' : 'triangle';
-    osc.frequency.setValueAtTime(isCapture ? 150 : 250, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+  function startGame() {
+    const layer = document.getElementById('introLayer');
+    layer.style.opacity = '0';
+    setTimeout(() => {
+      layer.style.display = 'none';
+      initBoard();       // 시작 버튼에서도 초기화
+      updateStatus();
+      syncModeButton();
+    }, 500);
   }
 
-  function init() {
-    const saved = localStorage.getItem("go19_v_final_sfx");
-    if(saved) {
-      const data = JSON.parse(saved);
-      board = data.board; turn = data.turn;
-      history = data.history || [];
-      captures = data.captures || {black:0, white:0};
-      isOmokMode = !!data.isOmokMode;
-    }
-    updateUI(); resize();
-    window.addEventListener('resize', resize);
-  }
-
-  function resize() {
+  // ✅ DPR 스케일 누적 방지: initBoard() 여러 번 호출돼도 안전
+  function initBoard() {
+    const rect = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.parentElement.getBoundingClientRect();
-    const side = Math.min(rect.width, rect.height) - 20;
-    canvas.width = side * dpr; canvas.height = side * dpr;
+
+    canvas.width  = rect.width * dpr;
+    canvas.height = rect.width * dpr;
+
+    // 누적 스케일 방지(리셋 후 재설정)
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    canvas.style.width = side + 'px'; canvas.style.height = side + 'px';
+
     draw();
   }
 
   function draw() {
-    const s = canvas.clientWidth;
+    const s = canvas.width / (window.devicePixelRatio || 1);
     const padding = s / (SIZE + 1);
     const spacing = (s - padding * 2) / (SIZE - 1);
-    ctx.clearRect(0,0,s,s);
-    ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.lineWidth = 1;
 
-    for(let i=0; i<SIZE; i++) {
-      ctx.beginPath(); ctx.moveTo(padding + i*spacing, padding); ctx.lineTo(padding + i*spacing, s - padding); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(padding, padding + i*spacing); ctx.lineTo(s - padding, padding + i*spacing); ctx.stroke();
+    ctx.clearRect(0, 0, s, s);
+    ctx.beginPath();
+    ctx.strokeStyle = "#333";
+
+    for (let i = 0; i < SIZE; i++) {
+      ctx.moveTo(padding, padding + i * spacing);
+      ctx.lineTo(s - padding, padding + i * spacing);
+
+      ctx.moveTo(padding + i * spacing, padding);
+      ctx.lineTo(padding + i * spacing, s - padding);
     }
-    const stars = [3, 9, 15];
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    stars.forEach(r => stars.forEach(c => {
-      ctx.beginPath(); ctx.arc(padding + c*spacing, padding + r*spacing, 3, 0, Math.PI*2); ctx.fill();
-    }));
+    ctx.stroke();
 
-    for(let y=0; y<SIZE; y++){
-      for(let x=0; x<SIZE; x++){
-        if(board[y][x] !== EMPTY){
-          const cx = padding + x*spacing; const cy = padding + y*spacing;
-          ctx.beginPath(); ctx.arc(cx, cy, spacing*0.45, 0, Math.PI*2);
-          ctx.fillStyle = board[y][x] === BLACK ? "#111" : "#fff";
-          ctx.shadowBlur = 4; ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.fill(); ctx.shadowBlur = 0;
-          if(board[y][x] === WHITE) { ctx.strokeStyle="#ccc"; ctx.stroke(); }
+    for (let y = 0; y < SIZE; y++) {
+      for (let x = 0; x < SIZE; x++) {
+        if (board[y][x] !== 0) {
+          ctx.beginPath();
+          ctx.arc(padding + x * spacing, padding + y * spacing, spacing * 0.43, 0, Math.PI * 2);
+          ctx.fillStyle = board[y][x] === 1 ? "#000" : "#fff";
+          ctx.fill();
         }
-      }
-    }
-    if(history.length > 0) {
-      const last = history[history.length-1];
-      if(!last.pass && last.x !== -1) {
-        ctx.fillStyle = "#ff4444"; ctx.beginPath();
-        ctx.arc(padding + last.x*spacing, padding + last.y*spacing, 4, 0, Math.PI*2); ctx.fill();
       }
     }
   }
 
-  canvas.addEventListener('click', (e) => {
+  canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
     const s = rect.width;
     const padding = s / (SIZE + 1);
@@ -167,159 +112,161 @@
     const x = Math.round((e.clientX - rect.left - padding) / spacing);
     const y = Math.round((e.clientY - rect.top - padding) / spacing);
 
-    if(x >= 0 && x < SIZE && y >= 0 && y < SIZE && board[y][x] === EMPTY) {
-      const curColor = turn;
-      board[y][x] = curColor;
-      let removed = [];
+    if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && board[y][x] === 0) {
+      let tempBoard = board.map(row => [...row]);
+      board[y][x] = turn;
 
-      if(!isOmokMode) {
-        removed = getCaptured(x, y, curColor);
-        if(removed.length === 0 && isSuicide(x, y, curColor)) {
-          board[y][x] = EMPTY; alert("자살수입니다!"); return;
+      if (!isOmok) {
+        let captured = checkCaptures(x, y, turn);
+        if (captured.length === 0 && isSuicide(x, y, turn)) {
+          board = tempBoard;
+          alert("자살수입니다!");
+          return;
         }
-        removed.forEach(([rx, ry]) => {
-          board[ry][rx] = EMPTY;
-          if(curColor === BLACK) captures.black++; else captures.white++;
+        captured.forEach(p => {
+          board[p.y][p.x] = 0;
+          captures[turn]++;
         });
       }
 
-      playStoneSound(removed.length > 0);
-      history.push({x, y, turn: curColor, removed, isOmok: isOmokMode});
-      draw();
-
-      if(isOmokMode && checkOmokWin(x, y, curColor)) {
-        setTimeout(() => {
-          alert(`${curColor === BLACK ? '흑' : '백'} 오목 승리!`);
-          if(confirm("판을 비울까요?")) resetBoard();
-        }, 100);
+      history.push({board: tempBoard, turn, captures: {...captures}});
+      if (isOmok && checkOmok(x, y, turn)) {
+        draw();
+        setTimeout(() => alert("오목 승리!"), 10);
       }
 
-      turn = (curColor === BLACK) ? WHITE : BLACK;
-      updateUI(); saveToLocal();
+      turn = (turn === 1) ? 2 : 1;
+      updateStatus();
+      draw();
     }
   });
 
-  function checkOmokWin(x, y, color) {
-    const dirs = [[1,0], [0,1], [1,1], [1,-1]];
-    for(const [dx, dy] of dirs) {
-      let count = 1;
-      for(let i=1; i<5; i++) {
-        const nx = x + dx*i, ny = y + dy*i;
-        if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) count++; else break;
-      }
-      for(let i=1; i<5; i++) {
-        const nx = x - dx*i, ny = y - dy*i;
-        if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) count++; else break;
-      }
-      if(count >= 5) return true;
-    }
-    return false;
-  }
+  function getGroup(x, y, color) {
+    let group = [];
+    let stack = [{x, y}];
+    let visited = new Set();
 
-  function getCaptured(x, y, color) {
-    const opp = (color === BLACK) ? WHITE : BLACK;
-    let totalRemoved = [];
-    [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx, dy]) => {
-      const nx = x + dx, ny = y + dy;
-      if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === opp) {
-        const group = getGroup(nx, ny);
-        if(!hasLiberty(group)) totalRemoved = totalRemoved.concat(group);
-      }
-    });
-    return totalRemoved;
-  }
+    while (stack.length > 0) {
+      let p = stack.pop();
+      let key = p.x + ',' + p.y;
+      if (visited.has(key)) continue;
 
-  function getGroup(gx, gy) {
-    const color = board[gy][gx]; const group = []; const visited = new Set();
-    const stack = [[gx, gy]];
-    while(stack.length) {
-      const [cx, cy] = stack.pop(); const key = `${cx},${cy}`;
-      if(!visited.has(key)) {
-        visited.add(key); group.push([cx, cy]);
-        [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx, dy]) => {
-          const nx = cx + dx, ny = cy + dy;
-          if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) stack.push([nx, ny]);
-        });
-      }
+      visited.add(key);
+      group.push(p);
+
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => {
+        let nx = p.x + d[0], ny = p.y + d[1];
+        if (nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === color) {
+          stack.push({x:nx, y:ny});
+        }
+      });
     }
     return group;
   }
 
-  function hasLiberty(group) {
-    for(const [gx, gy] of group) {
-      const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-      for(const [dx, dy] of dirs) {
-        const nx = gx + dx, ny = gy + dy;
-        if(nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === EMPTY) return true;
+  function hasLiberties(group) {
+    for (let p of group) {
+      let libs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (let d of libs) {
+        let nx = p.x + d[0], ny = p.y + d[1];
+        if (nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === 0) return true;
       }
     }
     return false;
   }
 
-  function isSuicide(sx, sy, color) {
-    const group = getGroup(sx, sy); return !hasLiberty(group);
+  function checkCaptures(x, y, color) {
+    let opponent = color === 1 ? 2 : 1;
+    let allCaptured = [];
+
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => {
+      let nx = x + d[0], ny = y + d[1];
+      if (nx>=0 && nx<SIZE && ny>=0 && ny<SIZE && board[ny][nx] === opponent) {
+        let group = getGroup(nx, ny, opponent);
+        if (!hasLiberties(group)) allCaptured.push(...group);
+      }
+    });
+    return allCaptured;
   }
 
-  function updateUI() {
-    document.getElementById("turnDot").className = "dot " + (turn === BLACK ? "black-dot" : "white-dot");
-    document.getElementById("turnText").innerText = (turn === BLACK ? "흑" : "백") + "의 차례";
-    document.getElementById("capBlack").innerText = captures.black;
-    document.getElementById("capWhite").innerText = captures.white;
-    const modeBtn = document.getElementById("modeBtn");
-    const appTitle = document.getElementById("appTitle");
-    const modeDisplay = document.getElementById("modeDisplay");
-    const capsArea = document.getElementById("capsArea");
+  function isSuicide(x, y, color) {
+    return !hasLiberties(getGroup(x, y, color));
+  }
 
-    if(isOmokMode) {
-      modeBtn.innerText = "🔁 모드 전환: 바둑"; appTitle.innerText = "주인님의 오목";
-      modeDisplay.innerText = "현재 모드: 오목 (돌 고정)"; capsArea.style.opacity = "0";
-    } else {
-      modeBtn.innerText = "🔁 모드 전환: 오목"; appTitle.innerText = "주인님의 바둑";
-      modeDisplay.innerText = "현재 모드: 바둑"; capsArea.style.opacity = "1";
+  function checkOmok(x, y, c) {
+    return [[1,0],[0,1],[1,1],[1,-1]].some(d => {
+      let cnt = 1;
+      for(let i=1; i<5; i++) if(board[y+d[1]*i]?.[x+d[0]*i]===c) cnt++; else break;
+      for(let i=1; i<5; i++) if(board[y-d[1]*i]?.[x-d[0]*i]===c) cnt++; else break;
+      return cnt >= 5;
+    });
+  }
+
+  function syncModeButton() {
+    document.getElementById('modeBtn').innerText =
+      isOmok ? "🔁 바둑 모드로 전환" : "🔁 오목 모드로 전환";
+  }
+
+  // ✅ 오목이면 "잡은 돌" 숨김 + 모드 표시
+  function updateStatus() {
+    const modeText = isOmok ? "오목" : "바둑";
+    const turnText = `${turn===1?'흑':'백'}의 차례 (${modeText})`;
+
+    document.getElementById('status').innerText = isOmok
+      ? turnText
+      : `${turnText} | 잡은 돌 - 흑: ${captures[1]} 백: ${captures[2]}`;
+  }
+
+  // ✅ 돌이 있는 상태에서는 모드 전환 제한(필요 시 판 비우고 전환)
+  function boardNotEmpty() {
+    return history.length > 0 || board.some(row => row.some(v => v !== 0));
+  }
+
+  function clearBoardSilently() {
+    board = Array.from({length:SIZE}, () => Array(SIZE).fill(0));
+    captures = {1:0, 2:0};
+    history = [];
+    turn = 1;
+  }
+
+  function toggleMode() {
+    if (boardNotEmpty()) {
+      const ok = confirm("돌이 놓여 있는 상태에서는 모드 전환이 불가합니다.\n판을 비우고 전환할까요?");
+      if (!ok) return;
+      clearBoardSilently();
     }
+
+    isOmok = !isOmok;
+    updateStatus();
+    syncModeButton();
+    draw();
   }
 
-  function saveToLocal() {
-    localStorage.setItem("go19_v_final_sfx", JSON.stringify({board, turn, history, captures, isOmokMode}));
+  function undo() {
+    if (history.length > 0) {
+      let last = history.pop();
+      board = last.board;
+      turn = last.turn;
+      captures = last.captures;
+      updateStatus();
+      draw();
+    }
   }
 
   function resetBoard() {
-    board = Array.from({length:SIZE}, () => Array(SIZE).fill(EMPTY));
-    history = []; captures = {black:0, white:0}; turn = BLACK;
-    saveToLocal(); updateUI(); draw();
+    if (confirm("초기화?")) {
+      clearBoardSilently();
+      updateStatus();
+      draw();
+    }
   }
 
-  document.getElementById("modeBtn").addEventListener("click", () => {
-    if (board.some(row => row.some(cell => cell !== EMPTY))) {
-      alert("판에 돌이 있을 때는 모드를 바꿀 수 없습니다.\n먼저 '판 비우기'를 눌러주세요."); return;
-    }
-    isOmokMode = !isOmokMode; updateUI(); saveToLocal();
-  });
-
-  document.getElementById("undoBtn").addEventListener("click", () => {
-    if(history.length === 0) return;
-    const last = history.pop();
-    if(!last.pass) board[last.y][last.x] = EMPTY;
-    if(last.removed && last.removed.length > 0) {
-      const opp = (last.turn === BLACK) ? WHITE : BLACK;
-      last.removed.forEach(([rx, ry]) => {
-        board[ry][rx] = opp;
-        if(last.turn === BLACK) captures.black--; else captures.white--;
-      });
-    }
-    turn = last.turn; updateUI(); saveToLocal(); draw();
-  });
-
-  document.getElementById("passBtn").addEventListener("click", () => {
-    history.push({x: -1, y: -1, turn, pass: true});
-    turn = (turn === BLACK) ? WHITE : BLACK; updateUI(); saveToLocal(); draw();
-  });
-
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    if(confirm("판을 비울까요?")) resetBoard();
-  });
-
-  init();
+  // 페이지 로드 시에도 초기 렌더(인트로 뒤에 미리 깔림)
+  window.onload = () => {
+    initBoard();
+    updateStatus();
+    syncModeButton();
+  };
 </script>
 </body>
 </html>
